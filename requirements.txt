@@ -1,0 +1,21 @@
+# Core
+python-dotenv>=1.0.0
+
+# iOS Automation
+Appium-Python-Client>=4.0.0
+selenium>=4.15.0
+
+# Computer Vision & Image Processing
+opencv-python>=4.8.1
+opencv-python-headless>=4.8.1
+numpy>=1.24.0
+Pillow>=10.0.0
+
+# OCR
+pytesseract>=0.3.10
+
+# Async
+anyio>=4.0.0
+
+# Utilities
+requests>=2.31.0
