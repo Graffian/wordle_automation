@@ -4,10 +4,8 @@ from typing import Optional
 
 import subprocess
 from appium import webdriver
+from appium.options.common import AppiumOptions
 from appium.webdriver.webdriver import WebDriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 from utils.logger import setup_logger
 from config.settings import Settings
@@ -47,7 +45,7 @@ class DeviceManager:
             self.detect_device()
         self.ensure_wda_running()
 
-        desired_caps = {
+        capabilities = {
             "platformName": self.settings.appium.platform_name,
             "appium:platformVersion": self.settings.appium.platform_version,
             "appium:deviceName": self.settings.appium.device_name,
@@ -63,12 +61,15 @@ class DeviceManager:
             "appium:waitForIdleTimeout": 5,
         }
 
+        options = AppiumOptions()
+        options.load_capabilities(capabilities)
+
         logger.info("Connecting to Appium at %s ...", self.settings.appium.appium_url)
         for attempt in range(self.settings.input.max_retries):
             try:
                 self.driver = webdriver.Remote(
                     self.settings.appium.appium_url,
-                    desired_caps
+                    options=options
                 )
                 logger.info("Connected to iPhone successfully")
                 return self.driver
