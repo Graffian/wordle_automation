@@ -22,49 +22,45 @@ class DeviceManager:
         self.wda_url: Optional[str] = None
         self.session_id: Optional[str] = None
         self._http = requests.Session()
-        self._wda_process: Optional[subprocess.Popen] = None
 
     async def connect(self):
         port = self.settings.device.wda_port
         self.wda_url = f"http://127.0.0.1:{port}"
 
-        logger.info("Mounting developer disk image...")
-        subprocess.run(
-            ["pymobiledevice3", "developer", "ddi", "mount"],
-            capture_output=True, timeout=60
-        )
-
-        logger.info("Starting WebDriverAgent via pymobiledevice3...")
-        self._wda_process = subprocess.Popen(
-            ["pymobiledevice3", "developer", "wda", "start", "-p", str(port)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-
         for attempt in range(30):
             try:
                 resp = requests.get(f"{self.wda_url}/status", timeout=2)
                 if resp.ok:
-                    logger.info("WDA ready after ~%ds", attempt)
+                    logger.info("WDA already reachable (attempt %d)", attempt)
                     break
             except requests.ConnectionError:
                 pass
             await asyncio.sleep(1)
         else:
-            raise RuntimeError("WDA did not start within 30 seconds")
+            raise RuntimeError("WDA did not become reachable within 30s — make sure tunneld + port forwarding are running")
 
-        resp = self._http.post(f"{self.wda_url}/session", json={
-            "capabilities": {
-                "alwaysMatch": {
+        logger.info("Starting WDA session for %s ...", self.settings.device.bundle_id)
+        resp = self._http.post(
+            f"{self.wda_url}/session",
+            json={
+                "desiredCapabilities": {
                     "bundleId": self.settings.device.bundle_id,
+                    "arguments": [],
+                    "environment": {},
+                    "shouldWaitForQuiescence": True,
+                    "shouldUseTestManagerForVisibilityDetection": True,
+                    "maxTypingFrequency": 60,
+                    "shouldUseSingletonTestManager": False,
                 }
-            }
-        }, timeout=30)
+            },
+            timeout=30
+        )
         resp.raise_for_status()
-        self.session_id = resp.json()["value"]["session"]
-        logger.info("WDA session created: %s", self.session_id)
+        data = resp.json()
+        self.session_id = data.get("sessionId") or data.get("value", {}).get("sessionId")
+        logger.info("WDA session: %s", self.session_id)
 
-        caps = resp.json()["value"]["capabilities"]
+        caps = data.get("value", {}).get("capabilities", {})
         self.settings.screen.width = int(caps.get("width", self.settings.screen.width))
         self.settings.screen.height = int(caps.get("height", self.settings.screen.height))
         logger.info("Screen: %dx%d", self.settings.screen.width, self.settings.screen.height)
@@ -79,9 +75,6 @@ class DeviceManager:
             except Exception:
                 pass
             self.session_id = None
-        if self._wda_process:
-            self._wda_process.terminate()
-            self._wda_process = None
         logger.info("Disconnected")
 
     async def screenshot(self) -> np.ndarray:
