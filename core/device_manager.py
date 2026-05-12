@@ -1,4 +1,7 @@
+import asyncio
 import base64
+import subprocess
+import time
 from io import BytesIO
 from typing import Optional
 
@@ -19,21 +22,30 @@ class DeviceManager:
         self.wda_url: Optional[str] = None
         self.session_id: Optional[str] = None
         self._http = requests.Session()
+        self._wda_process: Optional[subprocess.Popen] = None
 
     async def connect(self):
-        import tidevice
+        port = self.settings.device.wda_port
+        self.wda_url = f"http://127.0.0.1:{port}"
 
-        devices = tidevice.Device.list()
-        if not devices:
-            raise RuntimeError("No iOS devices detected via USB")
-        logger.info("Detected device: %s", devices[0].udid)
+        logger.info("Starting WebDriverAgent via tidevice...")
+        self._wda_process = subprocess.Popen(
+            ["tidevice", "wda", "-p", str(port)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
 
-        device = tidevice.Device()
-        wda = tidevice.WDA(device, port=self.settings.device.wda_port)
-        logger.info("Starting WebDriverAgent on device...")
-        wda.start()
-        self.wda_url = f"http://127.0.0.1:{self.settings.device.wda_port}"
-        logger.info("WDA started at %s", self.wda_url)
+        for attempt in range(30):
+            try:
+                resp = requests.get(f"{self.wda_url}/status", timeout=2)
+                if resp.ok:
+                    logger.info("WDA ready after ~%ds", attempt)
+                    break
+            except requests.ConnectionError:
+                pass
+            await asyncio.sleep(1)
+        else:
+            raise RuntimeError("WDA did not start within 30 seconds")
 
         resp = self._http.post(f"{self.wda_url}/session", json={
             "capabilities": {
@@ -46,11 +58,10 @@ class DeviceManager:
         self.session_id = resp.json()["value"]["session"]
         logger.info("WDA session created: %s", self.session_id)
 
-        width = int(resp.json()["value"]["capabilities"]["width"])
-        height = int(resp.json()["value"]["capabilities"]["height"])
-        logger.info("Screen: %dx%d", width, height)
-        self.settings.screen.width = width
-        self.settings.screen.height = height
+        caps = resp.json()["value"]["capabilities"]
+        self.settings.screen.width = int(caps.get("width", self.settings.screen.width))
+        self.settings.screen.height = int(caps.get("height", self.settings.screen.height))
+        logger.info("Screen: %dx%d", self.settings.screen.width, self.settings.screen.height)
         return self
 
     async def disconnect(self):
@@ -62,6 +73,9 @@ class DeviceManager:
             except Exception:
                 pass
             self.session_id = None
+        if self._wda_process:
+            self._wda_process.terminate()
+            self._wda_process = None
         logger.info("Disconnected")
 
     async def screenshot(self) -> np.ndarray:
