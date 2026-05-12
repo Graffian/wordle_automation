@@ -28,9 +28,15 @@ class DeviceManager:
         port = self.settings.device.wda_port
         self.wda_url = f"http://127.0.0.1:{port}"
 
-        logger.info("Starting WebDriverAgent via tidevice...")
+        logger.info("Mounting developer disk image...")
+        subprocess.run(
+            ["pymobiledevice3", "developer", "ddi", "mount"],
+            capture_output=True, timeout=60
+        )
+
+        logger.info("Starting WebDriverAgent via pymobiledevice3...")
         self._wda_process = subprocess.Popen(
-            ["tidevice", "wda", "-p", str(port)],
+            ["pymobiledevice3", "developer", "wda", "start", "-p", str(port)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
