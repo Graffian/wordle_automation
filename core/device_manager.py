@@ -54,8 +54,6 @@ class DeviceManager:
             "appium:bundleId": self.settings.appium.bundle_id,
             "appium:noReset": self.settings.appium.no_reset,
             "appium:fullReset": self.settings.appium.full_reset,
-            "appium:usePrebuiltWDA": self.settings.appium.use_prebuilt_wda,
-            "appium:wdaBundleId": self.settings.appium.wda_bundle_id,
             "appium:wdaLocalPort": self.settings.appium.wda_port,
             "appium:shouldUseSingletonTestManager": False,
             "appium:waitForIdleTimeout": 5,
