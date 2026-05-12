@@ -1,11 +1,6 @@
 import asyncio
 from typing import List, Tuple
 
-from appium.webdriver.webdriver import WebDriver
-from selenium.webdriver.common.actions import interaction
-from selenium.webdriver.common.actions.action_builder import ActionBuilder
-from selenium.webdriver.common.actions.pointer_input import PointerInput
-
 from utils.logger import setup_logger
 from config.settings import Settings
 
@@ -13,29 +8,44 @@ logger = setup_logger(__name__)
 
 
 class InputAutomator:
-    def __init__(self, driver: WebDriver, settings: Settings):
-        self.driver = driver
+    def __init__(self, device_mgr, settings: Settings):
+        self._device = device_mgr
         self.settings = settings
 
     async def swipe_word(self, tile_centers: List[Tuple[int, int]]) -> None:
         if not tile_centers:
             return
 
-        finger = PointerInput(interaction.POINTER_TOUCH, "finger")
-        action = ActionBuilder(self.driver, mouse=finger)
-
-        first_x, first_y = tile_centers[0]
-        action.pointer_action.move_to_location(first_x, first_y)
-        action.pointer_action.pointer_down()
+        actions = {
+            "actions": [{
+                "type": "pointer",
+                "id": "finger1",
+                "parameters": {"pointerType": "touch"},
+                "actions": [
+                    {
+                        "type": "pointerMove",
+                        "duration": 0,
+                        "x": tile_centers[0][0],
+                        "y": tile_centers[0][1],
+                    },
+                    {"type": "pointerDown", "button": 0},
+                ]
+            }]
+        }
 
         for x, y in tile_centers[1:]:
-            action.pointer_action.move_to_location(x, y)
-            action.pointer_action.pause(self.settings.input.swipe_segment_delay)
+            actions["actions"][0]["actions"].append({
+                "type": "pointerMove",
+                "duration": 50,
+                "x": x,
+                "y": y,
+            })
 
-        action.pointer_action.pause(self.settings.input.swipe_press_duration)
-        action.pointer_action.release()
-        action.perform()
+        actions["actions"][0]["actions"].append(
+            {"type": "pointerUp", "button": 0}
+        )
 
+        await self._device.perform_actions(actions)
         await asyncio.sleep(self.settings.input.after_swipe_delay)
 
     async def swipe_path_indices(

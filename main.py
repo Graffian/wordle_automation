@@ -17,7 +17,6 @@ class WordleAutomation:
     def __init__(self, settings: Optional[Settings] = None):
         self.settings = settings or Settings()
         self.device_manager = DeviceManager(self.settings)
-        self.driver = None
         self.screen = None
         self.board_detector = BoardDetector(self.settings)
         self.ocr = OcrPipeline(self.settings)
@@ -30,9 +29,9 @@ class WordleAutomation:
         logger.info("=" * 50)
 
         self.word_finder.load_dictionary()
-        self.driver = await self.device_manager.connect()
-        self.screen = ScreenCapture(self.driver, self.settings)
-        self.input_automator = InputAutomator(self.driver, self.settings)
+        await self.device_manager.connect()
+        self.screen = ScreenCapture(self.device_manager, self.settings)
+        self.input_automator = InputAutomator(self.device_manager, self.settings)
         logger.info("Initialization complete")
 
     async def read_grid(self) -> Optional[List[List[str]]]:
@@ -158,7 +157,7 @@ async def main():
     if args.debug:
         settings.debug = True
     if args.bundle_id:
-        settings.appium.bundle_id = args.bundle_id
+        settings.device.bundle_id = args.bundle_id
 
     automation = WordleAutomation(settings)
     await automation.run_multiple(args.games)

@@ -1,25 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
-class AppiumSettings:
-    platform_name: str = "iOS"
-    platform_version: str = "17.4"
-    device_name: str = "iPhone 15"
-    automation_name: str = "XCUITest"
+class DeviceSettings:
+    wda_host: str = "127.0.0.1"
     wda_port: int = 8100
-    appium_host: str = "http://127.0.0.1"
-    appium_port: int = 4723
     bundle_id: str = "com.triumphsdkprod"
-    use_prebuilt_wda: bool = False
-    wda_bundle_id: str = "com.facebook.WebDriverAgentRunner.xctrunner"
-    no_reset: bool = True
-    full_reset: bool = False
-
-    @property
-    def appium_url(self) -> str:
-        return f"{self.appium_host}:{self.appium_port}"
 
 
 @dataclass
@@ -80,7 +66,7 @@ class InputSettings:
 
 @dataclass
 class Settings:
-    appium: AppiumSettings = field(default_factory=AppiumSettings)
+    device: DeviceSettings = field(default_factory=DeviceSettings)
     board: BoardSettings = field(default_factory=BoardSettings)
     screen: ScreenSettings = field(default_factory=ScreenSettings)
     boggle: BoggleSettings = field(default_factory=BoggleSettings)

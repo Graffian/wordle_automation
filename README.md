@@ -1,6 +1,6 @@
 # iPhone Boggle Automation System
 
-Automatically plays a Boggle-style word game inside Triumph Arcade on an iPhone 15 via USB using computer vision, OCR, and Appium automation.
+Automatically plays a Boggle-style word game inside Triumph Arcade on an iPhone via USB using computer vision, OCR, and touch automation via tidevice + WebDriverAgent.
 
 ## Architecture
 
@@ -18,12 +18,13 @@ Automatically plays a Boggle-style word game inside Triumph Arcade on an iPhone 
 │       │                      │                        │
 │  ┌────▼──────┐         ┌─────▼────────┐               │
 │  │   Screen   │         │  Device Mgr  │               │
-│  │  Capture   │         │  (Appium)    │               │
+│  │  Capture   │         │ (tidevice +  │               │
+│  │            │         │  WDA HTTP)   │               │
 │  └────┬──────┘         └─────┬────────┘               │
 └───────┼──────────────────────┼─────────────────────────┘
         │ USB                  │ USB
   ┌─────▼──────────────────────▼──────┐
-  │         iPhone 15                  │
+  │         iPhone                     │
   │  ┌─────────────────────────────┐  │
   │  │  Triumph Arcade + Boggle   │  │
   │  └─────────────────────────────┘  │
@@ -33,12 +34,12 @@ Automatically plays a Boggle-style word game inside Triumph Arcade on an iPhone 
 
 ## System Requirements
 
-- **macOS** (required for Xcode/WebDriverAgent; limited support on Linux/Windows)
-- Python 3.10+
-- iPhone 15 with iOS 17+
-- USB cable (data sync capable)
-- Node.js 18+ (for Appium)
+- **macOS** or **Windows** or **Linux**
+- Python 3.9+
+- iPhone with USB cable
 - Tesseract OCR
+- Developer Mode enabled on iPhone
+- **No Xcode or Appium required**
 
 ## Installation
 
@@ -46,24 +47,14 @@ Automatically plays a Boggle-style word game inside Triumph Arcade on an iPhone 
 
 ```bash
 # macOS
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install libimobiledevice
-brew install tesseract
-brew install node
+brew install libimobiledevice tesseract
 
-# Ubuntu
+# Ubuntu/Debian
 sudo apt update
 sudo apt install libimobiledevice-dev libusbmuxd-dev tesseract-ocr
 ```
 
-### 2. Appium & WebDriverAgent
-
-```bash
-npm install -g appium
-appium driver install xcuitest
-```
-
-### 3. Python Environment
+### 2. Python Environment
 
 ```bash
 cd wordle_automation
@@ -72,18 +63,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 4. iOS Setup
+### 3. iOS Setup
 
 1. Connect iPhone via USB
 2. Trust the computer on iPhone
 3. Enable Developer Mode (Settings > Privacy & Security > Developer Mode)
 4. Verify connection: `idevice_id -l`
 
-### 5. Start Appium
-
-```bash
-appium --log-level info
-```
+**No Xcode or Appium needed.** The tool uses `tidevice` (Python) to start WebDriverAgent on the device using a prebuilt binary.
 
 ## Finding the Bundle ID
 
@@ -102,7 +89,7 @@ Or look up the app on App Store databases (e.g., AppBrain, Apptopia).
 # Activate environment
 source venv/bin/activate
 
-# Open Triumph Arcade on iPhone, navigate to the Boggle game, then run:
+# Open Triumph Arcade on iPhone, navigate to the Boggle game, then:
 python main.py
 
 # Debug mode (saves screenshots, verbose logging)
